@@ -2,6 +2,7 @@
 
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 from datetime import datetime
 
 # Import helper functions
@@ -169,6 +170,7 @@ elif page == "View Transactions":
 # -------------------------------
 # Summary Page
 # -------------------------------
+
 elif page == "Summary":
 
     st.title("📊 Financial Summary")
@@ -176,83 +178,64 @@ elif page == "Summary":
     if st.session_state.transactions:
 
         # Convert to DataFrame
-        df = pd.DataFrame(
-            st.session_state.transactions
-        )
+        df = pd.DataFrame(st.session_state.transactions)
 
         # Calculations using helpers
-        total_income = calculate_income(
-            st.session_state.transactions
-        )
-
-        total_expense = calculate_expense(
-            st.session_state.transactions
-        )
-
-        balance = calculate_balance(
-            total_income,
-            total_expense
-        )
+        total_income = calculate_income(st.session_state.transactions)
+        total_expense = calculate_expense(st.session_state.transactions)
+        balance = calculate_balance(total_income, total_expense)
 
         # Metrics
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            st.metric(
-                "💵 Total Income",
-                f"₹ {total_income}"
-            )
+            st.metric("💵 Total Income", f"₹ {total_income}")
 
         with col2:
-            st.metric(
-                "💸 Total Expense",
-                f"₹ {total_expense}"
-            )
+            st.metric("💸 Total Expense", f"₹ {total_expense}")
 
         with col3:
-            st.metric(
-                "🏦 Balance",
-                f"₹ {balance}"
-            )
+            st.metric("🏦 Balance", f"₹ {balance}")
 
         # ---------------------------
-        # Category-wise Summary
+        # Expense Data
         # ---------------------------
-        st.subheader(
-            "📌 Category-wise Expense Summary"
-        )
+        expense_df = df[df["type"] == "Expense"]
 
-        expense_df = df[
-            df["type"] == "Expense"
-        ]
+        # ---------------------------
+        # Category-wise Table
+        # ---------------------------
+        st.subheader("📌 Category-wise Expense Summary")
 
         if not expense_df.empty:
 
-            category_summary = (
-                expense_df.groupby("category")
-                ["amount"]
-                .sum()
-                .reset_index()
-            )
+            category_summary = expense_df.groupby("category")["amount"].sum().reset_index()
 
-            category_summary.columns = [
-                "Category",
-                "Total Spent (₹)"
-            ]
+            category_summary.columns = ["Category", "Total Spent (₹)"]
 
             st.table(category_summary)
+
+            # ---------------------------
+            # PIE CHART
+            # ---------------------------
+            st.subheader("📊 Expense Pie Chart")
+
+            category_data = expense_df.groupby("category")["amount"].sum()
+
+            fig, ax = plt.subplots()
+
+            ax.pie(
+                category_data,
+                labels=category_data.index,
+                autopct="%1.1f%%"
+            )
+
+            ax.set_title("Expense Breakdown")
+
+            st.pyplot(fig)
 
         else:
             st.info("No Expense Data Available")
 
     else:
-        st.warning("No Transactions Added Yet")
-
-# -------------------------------
-# Footer
-# -------------------------------
-st.markdown("---")
-
-st.caption(
-    "Personal Expense Tracker using Python & Streamlit"
-)
+        st.warning("No Transactions Added Yet")           
